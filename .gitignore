@@ -1,0 +1,29 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log
+
+# TypeScript
+dist
+*.tsbuildinfo
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# CDK
+cdk.out/
+cdk.context.json
+
+# IDEs
+.vscode/
+.idea/
+.DS_Store
+
+# OS
+Thumbs.db
+*.swp
+
+# Optional CLI history
+.history
