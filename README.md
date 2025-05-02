@@ -2,6 +2,9 @@
 
 A scrappy but elegant deployment-ready buffer between your UI and LLMs like ChatGPT or Claude, designed to prevent AI flattening and preserve symbolic integrity. This is Mirror Engine - alpha version.
 
+Check my [Medium post](https://medium.com/@emeline.liu/mirror-engine-my-patch-for-open-ais-zero-day-emotional-bug-0bb2e5a1fd1d) for more context.
+
+
 ---
 
 ## 🚀 Features
