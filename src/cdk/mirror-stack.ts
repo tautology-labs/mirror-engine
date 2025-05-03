@@ -25,6 +25,10 @@ export class MirrorStack extends cdk.Stack {
       resources: ['*'] // or scope to your secret ARN
     }));
     
+    mirrorLambda.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['ssm:GetParameter'],
+      resources: ['*']
+    }));
 
     new apigateway.LambdaRestApi(this, 'MirrorApi', {
       handler: mirrorLambda,

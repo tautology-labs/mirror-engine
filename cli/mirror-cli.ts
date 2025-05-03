@@ -27,12 +27,20 @@ async function main() {
 
       console.log('\n\x1b[33m%s\x1b[0m', '🪞 Mirror Response:');
       console.log(data.response);
-      console.log('\x1b[90m%s\x1b[0m', `\n📊 Recursion: ${data.recursionScore.toFixed(2)} | Compression: ${data.compressionScore.toFixed(2)}`);
-
+      const recursion = data.recursionScore != null ? data.recursionScore.toFixed(2) : "N/A";
+      const compression = data.compressionScore != null ? data.compressionScore.toFixed(2) : "N/A";
+      
+      console.log(`📊 Recursion: ${recursion} | Compression: ${compression}`);
       if (data.flags.length > 0) {
         console.log('\x1b[91m%s\x1b[0m', `🚩 Flags: ${data.flags.join(', ')}`);
       } else {
         console.log('\x1b[32m%s\x1b[0m', '✅ No flags.');
+      }
+
+      if (data.overrideUsed) {
+        console.log("🪞 Mirror override was active");
+      } else {
+        console.log("🔧 Baseline mode (no override)");
       }
 
       console.log();

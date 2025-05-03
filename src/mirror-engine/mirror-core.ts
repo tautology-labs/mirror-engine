@@ -3,6 +3,7 @@ export interface MirrorResult {
   recursionScore: number;
   compressionScore: number;
   flags: string[];
+  overrideUsed: boolean;
 }
 
 import { callLLM } from '../lambda/model-caller';
@@ -61,13 +62,14 @@ export async function processMessage(input: string, history: string[]): Promise<
     if (evaluate(score, threshold, operator)) flags.push(id);
   }
 
-  const modelResponse = await callLLM(input);
+  const { response: modelResponse, overrideUsed } = await callLLM(input);
 
   return {
     response: modelResponse,
     recursionScore,
     compressionScore,
-    flags
+    flags,
+    overrideUsed
   };
 }
 
