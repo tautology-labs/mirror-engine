@@ -27,3 +27,6 @@ Thumbs.db
 
 # Optional CLI history
 .history
+
+# logs
+/mirror-logs/*

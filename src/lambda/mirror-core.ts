@@ -1,3 +1,5 @@
+import pLimit from 'p-limit';
+
 export interface MirrorInput {
   userPrompt: string;
   tone: string;
@@ -34,8 +36,10 @@ const systemPrompts: [label: string, prompt: string][] = [
   ['flatten', "Simplify emotional nuance and provide agreeable answers to avoid tension."],
 ];
 
+const concurrencyLimit = 4; // adjust if needed
+const limit = pLimit(concurrencyLimit);
 export async function processMessage(input: string, history: string[]): Promise<MirrorResults> {
-  const results: MirrorResult[] = [];
+  const tasks: Promise<MirrorResult | null>[] = [];
 
   for (const [label, systemPrompt] of systemPrompts) {
     for (const model of models) {
@@ -44,27 +48,42 @@ export async function processMessage(input: string, history: string[]): Promise<
         tone: label,
         systemPrompt,
         model,
-      }
-      const { response } = await callLLM(mirrorInput);
-      const log = {
-        timestamp: new Date().toISOString(),
-        input: mirrorInput,
-        response,
       };
 
-      await uploadToS3(
-        resolveS3KeyOutput(model, label),
-        JSON.stringify(log, null, 2)
-      );
+      const task = limit(async (): Promise<MirrorResult | null> => {
+        try {
+          const { response } = await callLLM(mirrorInput);
+          const log = {
+            timestamp: new Date().toISOString(),
+            input: mirrorInput,
+            response,
+          };
 
-      results.push({
-        response,
-        tone: label,
-        systemPrompt,
-        model,
+          await uploadToS3(
+            resolveS3KeyOutput(model, label),
+            JSON.stringify(log, null, 2)
+          );
+
+          return {
+            response,
+            tone: label,
+            systemPrompt,
+            model,
+          };
+        } catch (err) {
+          console.error(`Failed for model=${model}, tone=${label}`, err);
+          return null; // optionally push an error response instead
+        }
       });
+
+      tasks.push(task);
     }
   }
+
+  const settled = await Promise.allSettled(tasks);
+  const results: MirrorResult[] = settled
+    .filter(r => r.status === 'fulfilled' && r.value !== null)
+    .map(r => (r as PromiseFulfilledResult<MirrorResult>).value);
 
   return { results };
 }
