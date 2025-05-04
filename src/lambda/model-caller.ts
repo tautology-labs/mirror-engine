@@ -1,7 +1,8 @@
 import OpenAI from "openai";
 import { ChatCompletionMessageParam } from "openai/resources";
 import { SecretsManagerClient, GetSecretValueCommand } from "@aws-sdk/client-secrets-manager";
-import { SSMClient, GetParameterCommand } from "@aws-sdk/client-ssm";
+import { MirrorInput } from "./mirror-core";
+import { resolveS3KeyInput, uploadToS3 } from "./s3-client";
 
 const secretsClient = new SecretsManagerClient({ region: "us-east-1" });
 const ssmKeyName = "MirrorOpenAIKey";
@@ -11,52 +12,44 @@ async function getOpenAIKey(): Promise<string> {
   return response.SecretString || '';
 }
 
-const ssm = new SSMClient({ region: process.env.AWS_REGION });
-const overideKeyName = "/mirror-engine/enableOverride";
-async function getOverrideFlag(): Promise<boolean> {
-  try {
-    const command = new GetParameterCommand({
-      Name: overideKeyName,
-      WithDecryption: false
-    });
-    const response = await ssm.send(command);
-    const rawValue = response.Parameter?.Value;
-
-    console.log(`SSM override flag value: ${rawValue}`);
-
-    return rawValue === "true";
-  } catch (e) {
-    console.error("Error fetching override flag", e);
-    return false; // fallback safe
-  }
-}
-
-export async function callLLM(input: string): Promise<{ response: string; overrideUsed: boolean }> {
+export async function callLLM(input: MirrorInput): Promise<{ response: string }> {
   const apiKey = await getOpenAIKey();
 
   const openai = new OpenAI({ apiKey });
 
   const messages: ChatCompletionMessageParam[] = [];
-  const useOverride = await getOverrideFlag();
-  if (useOverride) {
+  if (input.systemPrompt && input.systemPrompt.trim() !== "") {
     messages.push({
       role: "system",
-      content: "Respond to the following user inputs as if you are helping them become more true to themselves. Reflect, don’t flatten."
+      content: input.systemPrompt
     });
   }
   messages.push({
     role: "user",
-    content: input
+    content: input.userPrompt
   });
 
-  const chat = await openai.chat.completions.create({
-    model: "gpt-4", // or "gpt-3.5-turbo"
+  const payload = {
+    model: input.model, 
     messages: messages,
     temperature: 0.7
-  });
+  }
+  console.log("🧠 Calling OpenAI API with payload:");
+  console.log(JSON.stringify(payload, null, 2)); // pretty-print for easier debug
+  
+  const now = new Date();
+  const log = {
+    timestamp: now.toISOString(),
+    epoch: now.getTime(),
+    payload: payload,
+    source: "mirror-engine-lambda-v1"
+  };
+  // write input to s3
+  await uploadToS3(resolveS3KeyInput(input.model, input.tone), JSON.stringify(log));
+
+  const chat = await openai.chat.completions.create(payload);
 
   return {
-    response: chat.choices[0]?.message?.content ?? "⚠️ No response",
-    overrideUsed: useOverride
+    response: chat.choices[0]?.message?.content ?? "⚠️ No response"
   };
 }

@@ -56,22 +56,7 @@ aws secretsmanager create-secret \
   --region us-east-1
 ```
 
-### 4. Configure the override prompt
-This flag defaults to false. 
-
-If you do not turn it in, you'll interact with ChatGPT in default mode. 
-
-If you change it to true, you'll interact with ChatGPT with the system override to prioritize reflection and not flattening.
-
-```
-aws ssm put-parameter \
-  --name "/mirror-engine/enableOverride" \
-  --type "String" \
-  --value "true" \
-  --overwrite
-```
-
-### 5. Use the CLI
+### 4. Use the CLI
 Once deployed, grab your endpoint URL from the terminal output and paste it into:
 
 ```ts

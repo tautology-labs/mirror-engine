@@ -1,5 +1,5 @@
 import { APIGatewayProxyHandler } from 'aws-lambda';
-import { processMessage } from '../mirror-engine/mirror-core';
+import { processMessage } from './mirror-core';
 
 export const handler: APIGatewayProxyHandler = async (event) => {
   try {
